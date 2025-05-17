@@ -7,6 +7,7 @@ pub struct GlobalAppState {
 pub struct MyApp {
     current_page: Option<Box<dyn crate::pages::Page>>,
     state: GlobalAppState,
+    page_error: Option<anyhow::Error>,
 }
 
 impl MyApp {
@@ -19,6 +20,7 @@ impl MyApp {
         Self {
             current_page: None,
             state: GlobalAppState { tmp_dir },
+            page_error: None,
         }
     }
 
@@ -77,7 +79,7 @@ impl MyApp {
 
     fn add_top_panel(&mut self, ctx: &egui::Context) {
         let top_panel_frame = egui::containers::Frame::new()
-            .fill(egui::Color32::from_hex("#001E62").unwrap())
+            .fill(egui::Color32::from_hex("#001E62").expect("Failed to parse color from hex."))
             .inner_margin(10);
         egui::TopBottomPanel::top("top_panel")
             .frame(top_panel_frame)
@@ -116,6 +118,26 @@ impl MyApp {
                     });
             });
     }
+
+    fn show_error_modal(&mut self, ctx: &egui::Context) {
+        egui::Modal::new(egui::Id::new("ErrorModal")).show(ctx, |ui| {
+            ui.heading("Error");
+            ui.label("Sorry, an error has occurred. The install process has been cancelled.");
+            ui.separator();
+            if let Some(err) = &self.page_error {
+                ui.label(format!("{}", err));
+            } else {
+                ui.label("No error information found.");
+            }
+            egui_alignments::row(ui, egui::Align::Center, |ui| {
+                egui_alignments::stretch(ui);
+                if ui.button("Ok").clicked() {
+                    self.page_error = None;
+                    self.current_page = None;
+                }
+            });
+        });
+    }
 }
 
 impl App for MyApp {
@@ -123,8 +145,12 @@ impl App for MyApp {
         if self.current_page.is_some() {
             self.add_top_panel(ctx);
             egui::CentralPanel::default().show(ctx, |ui| {
-                if let Some(page) = &mut self.current_page {
-                    page.run(&mut self.state, ui);
+                if self.page_error.is_some() {
+                    self.show_error_modal(ctx);
+                } else {
+                    if let Some(page) = &mut self.current_page {
+                        self.page_error = page.run(&mut self.state, ui).err();
+                    }
                 }
             });
         } else {

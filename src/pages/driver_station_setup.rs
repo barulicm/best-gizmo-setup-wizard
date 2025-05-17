@@ -2,9 +2,12 @@ use crate::app::GlobalAppState;
 use crate::pages::{Page, add_custom_next_button, add_next_button};
 use crate::utils::drive_management::{DriveInfo, list_drives};
 use crate::utils::github::GithubRelease;
+use crate::utils::threads::join_thread;
 use anyhow::anyhow;
 use egui_alignments::{column, stretch};
 use std::sync::mpsc::Receiver;
+use std::sync::Arc;
+use std::time::Duration;
 
 enum Step {
     ChooseVersion,
@@ -26,7 +29,7 @@ pub struct DriverStationSetupPage {
     available_drives: Option<Vec<DriveInfo>>,
     selected_drive: Option<DriveInfo>,
 
-    available_relases_receiver: Option<Receiver<Vec<GithubRelease>>>,
+    available_releases_receiver: Option<Receiver<Vec<GithubRelease>>>,
     download_finished_receiver: Option<Receiver<std::path::PathBuf>>,
     drive_list_receiver: Option<Receiver<Vec<DriveInfo>>>,
     install_finished_receiver: Option<Receiver<()>>,
@@ -47,7 +50,7 @@ impl DriverStationSetupPage {
             available_drives: None,
             selected_drive: None,
 
-            available_relases_receiver: None,
+            available_releases_receiver: None,
             download_finished_receiver: None,
             drive_list_receiver: None,
             install_finished_receiver: None,
@@ -56,40 +59,29 @@ impl DriverStationSetupPage {
         }
     }
 
-    fn run_choose_version(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run_choose_version(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         if self.available_releases.is_none() && self.background_thread.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
-            self.available_relases_receiver = Some(rx);
+            self.available_releases_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
                 let releases =
-                    crate::utils::github::get_releases("gizmo-platform", "gizmo").unwrap();
-                tx.send(releases).unwrap();
+                    crate::utils::github::get_releases("gizmo-platform", "gizmo").expect("Failed to fetch GitHub releases.");
+                tx.send(releases).expect("Failed to send release details to main thread.");
             }));
         }
-        if let Some(ref receiver) = self.available_relases_receiver {
-            if let Ok(releases) = receiver.try_recv() {
-                self.available_releases = Some(releases);
-                let thread = self.background_thread.take().unwrap();
-                thread
-                    .join()
-                    .map_err(|e| {
-                        anyhow::Error::msg(format!("Failed to join background thread: {:?}", e))
-                    })
-                    .unwrap();
-            }
-        }
-        if self.background_thread.is_none() && self.available_releases.is_some() {
-            self.available_relases_receiver = None;
+        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+            join_thread(thread)?;
+            let receiver = self.available_releases_receiver.take().ok_or(anyhow!("Expected available_releases_receiver to not be None."))?;
+            self.available_releases = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
         if self.available_releases.is_some() && self.software_version.is_none() {
             self.software_version = Some(
                 self.available_releases
                     .as_ref()
-                    .unwrap()
+                    .ok_or(anyhow!("Expected available_releases to not be None."))?
                     .iter()
                     .find(|r| r.latest)
-                    .ok_or(anyhow!("Latest release not found"))
-                    .unwrap()
+                    .ok_or(anyhow!("Latest release not found"))?
                     .clone(),
             );
         }
@@ -122,9 +114,10 @@ impl DriverStationSetupPage {
                 self.current_step = Step::EnterTeamNumbers;
             }
         });
+        Ok(())
     }
 
-    fn run_enter_team_numbers(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run_enter_team_numbers(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Team Numbers");
             ui.label("Enter your team numbers, one per line.");
@@ -154,11 +147,12 @@ impl DriverStationSetupPage {
                 self.current_step = Step::DownloadArchive;
             }
         });
+        Ok(())
     }
 
-    fn run_download_archive(&mut self, app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run_download_archive(&mut self, app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         if self.archive_path.is_none() && self.background_thread.is_none() {
-            let thread_release = self.software_version.clone().unwrap();
+            let thread_release = self.software_version.clone().ok_or(anyhow!("Expected software_version to not be None."))?;
             let cache_path = app_state.tmp_dir.path().join("github_downloads");
             let (tx, rx) = std::sync::mpsc::channel();
             self.download_finished_receiver = Some(rx);
@@ -167,8 +161,7 @@ impl DriverStationSetupPage {
                     .assets
                     .iter()
                     .find(|a| a.name == "ds-ramdisk.zip")
-                    .ok_or(anyhow!("Could not find ds-ramdisk.zip in release assets."))
-                    .unwrap();
+                    .expect("Could not find ds-ramdisk.zip in release assets.");
                 let archive_path = crate::utils::github::download_versioned_asset(
                     &asset,
                     "gizmo-platform",
@@ -176,27 +169,15 @@ impl DriverStationSetupPage {
                     &thread_release,
                     &cache_path,
                 )
-                .unwrap();
-                tx.send(archive_path).unwrap();
+                .expect("Failed to download ramdisk archive.");
+                tx.send(archive_path).expect("Failed to send download path to main thread.");
             }));
         }
 
-        if self.download_finished_receiver.is_some() {
-            let receiver = self.download_finished_receiver.as_ref().unwrap();
-            if let Ok(path) = receiver.try_recv() {
-                self.archive_path = Some(path);
-                let thread = self.background_thread.take().unwrap();
-                thread
-                    .join()
-                    .map_err(|e| {
-                        anyhow::Error::msg(format!("Failed to join background thread: {:?}", e))
-                    })
-                    .unwrap();
-                self.download_finished_receiver = None;
-            }
-        }
-
-        if self.archive_path.is_some() {
+        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+            join_thread(thread)?;
+            let receiver = self.download_finished_receiver.take().ok_or(anyhow!("Expected download_finished_receiver to not be None."))?;
+            self.archive_path = Some(receiver.recv_timeout(Duration::from_secs(1))?);
             self.current_step = Step::ChooseDrive;
         }
 
@@ -206,31 +187,23 @@ impl DriverStationSetupPage {
             ui.label("Downloading software archive...");
             stretch(ui);
         });
+        Ok(())
     }
 
-    fn run_choose_drive(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run_choose_drive(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         if self.available_drives.is_none() && self.background_thread.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.drive_list_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
-                let drives = list_drives().unwrap();
-                tx.send(drives).unwrap();
+                let drives = list_drives().expect("Falied to get list of available drives.");
+                tx.send(drives).expect("Failed to send drive list to main thread.");
             }));
         }
 
-        if self.drive_list_receiver.is_some() {
-            let receiver = self.drive_list_receiver.as_ref().unwrap();
-            if let Ok(drives) = receiver.try_recv() {
-                self.available_drives = Some(drives);
-                let thread = self.background_thread.take().unwrap();
-                thread
-                    .join()
-                    .map_err(|e| {
-                        anyhow::Error::msg(format!("Failed to join background thread: {:?}", e))
-                    })
-                    .unwrap();
-                self.drive_list_receiver = None;
-            }
+        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+            join_thread(thread)?;
+            let receiver = self.drive_list_receiver.take().ok_or(anyhow!("Expected drive_list_receiver to not be None."))?;
+            self.available_drives = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
 
         column(ui, egui::Align::LEFT, |ui| {
@@ -276,31 +249,29 @@ impl DriverStationSetupPage {
                 self.current_step = Step::InstallSoftware;
             }
         });
+        Ok(())
     }
 
-    fn run_install_software(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run_install_software(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         if self.install_finished_receiver.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.install_finished_receiver = Some(rx);
-            let archive_path = self.archive_path.as_ref().unwrap();
-            let drive = self.selected_drive.as_ref().unwrap().clone();
-            let ramdisk_archive = std::fs::File::open(&archive_path).unwrap();
+            let archive_path = self.archive_path.as_ref().ok_or(anyhow!("Expected archive_path to not be None."))?;
+            let drive = self.selected_drive.clone().ok_or(anyhow!("Expected selected_drive to not be None."))?;
+            let ramdisk_archive = std::fs::File::open(&archive_path)?;
             let team_number = self.team_numbers[self.team_number_index].clone();
             self.background_thread = Some(std::thread::spawn(move || {
-                crate::utils::drive_management::format_drive(&drive, &team_number).unwrap();
-                zip_extract::extract(ramdisk_archive, &drive.drive_path, true).unwrap();
-                crate::utils::drive_management::write_filesystem_cache(&drive).unwrap();
-                tx.send(()).unwrap();
+                crate::utils::drive_management::format_drive(&drive, &team_number).expect("Failed to format drive.");
+                zip_extract::extract(ramdisk_archive, &drive.drive_path, true).expect("Failed to extract ramdisk archive.");
+                crate::utils::drive_management::write_filesystem_cache(&drive).expect("Failed to flush filesystem cache.");
+                tx.send(()).expect("Failed to signal intall finish to main thread.");
             }));
         }
 
-        if self.install_finished_receiver.is_some() {
-            let receiver = self.install_finished_receiver.as_ref().unwrap();
-            if let Ok(()) = receiver.try_recv() {
-                self.background_thread.take().unwrap().join().unwrap();
-                self.install_finished_receiver = None;
-                self.current_step = Step::RemoveCard;
-            }
+        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+            join_thread(thread)?;
+            self.install_finished_receiver.take().ok_or(anyhow!("Expected install_finished_receiver to not be None."))?;
+            self.current_step = Step::RemoveCard;
         }
 
         column(ui, egui::Align::Center, |ui| {
@@ -309,9 +280,10 @@ impl DriverStationSetupPage {
             ui.label("Installing software...");
             stretch(ui);
         });
+        Ok(())
     }
 
-    fn run_remove_card(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run_remove_card(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Installation Complete");
             let team_number = self.team_numbers[self.team_number_index].clone();
@@ -330,11 +302,12 @@ impl DriverStationSetupPage {
                 ui.label("All team numbers have been processed. You can now close the wizard or click 'Start Over'.");
             }
         });
+        Ok(())
     }
 }
 
 impl Page for DriverStationSetupPage {
-    fn run(&mut self, app_state: &mut GlobalAppState, ui: &mut egui::Ui) {
+    fn run(&mut self, app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
         match self.current_step {
             Step::ChooseVersion => self.run_choose_version(app_state, ui),
             Step::EnterTeamNumbers => self.run_enter_team_numbers(app_state, ui),
