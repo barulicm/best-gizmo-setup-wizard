@@ -56,19 +56,26 @@ impl SystemFirmwarePage {
         }
     }
 
-    fn run_choose_version(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_choose_version(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.available_releases.is_none() && self.background_thread.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.available_releases_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
-                let releases =
-                    crate::utils::github::get_releases("gizmo-platform", "firmware").expect("Failed to fetch GitHub releases.");
-                tx.send(releases).expect("Failed to send release details to main thread.");
+                let releases = crate::utils::github::get_releases("gizmo-platform", "firmware")
+                    .expect("Failed to fetch GitHub releases.");
+                tx.send(releases)
+                    .expect("Failed to send release details to main thread.");
             }));
         }
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            let receiver = self.available_releases_receiver.take().ok_or(anyhow!("Expected available_releases_receiver to not be None."))?;
+            let receiver = self.available_releases_receiver.take().ok_or(anyhow!(
+                "Expected available_releases_receiver to not be None."
+            ))?;
             self.available_releases = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
         if self.available_releases.is_some() && self.software_version.is_none() {
@@ -114,8 +121,17 @@ impl SystemFirmwarePage {
         Ok(())
     }
 
-    fn run_choose_board_revision(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
-        let version_name = self.software_version.as_ref().ok_or(anyhow!("Expected software_version to not be None."))?.tag_name.clone();
+    fn run_choose_board_revision(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
+        let version_name = self
+            .software_version
+            .as_ref()
+            .ok_or(anyhow!("Expected software_version to not be None."))?
+            .tag_name
+            .clone();
         let prefix = "gss-";
         let suffix = "-".to_string() + &version_name + ".uf2";
 
@@ -126,7 +142,7 @@ impl SystemFirmwarePage {
                         .assets
                         .iter()
                         .filter_map(|asset| {
-                            if asset.name.starts_with(&prefix) && asset.name.ends_with(&suffix) {
+                            if asset.name.starts_with(prefix) && asset.name.ends_with(&suffix) {
                                 Some(asset.clone())
                             } else {
                                 None
@@ -145,7 +161,7 @@ impl SystemFirmwarePage {
                 for rev in available_revisions {
                     let display_text = rev
                         .name
-                        .trim_start_matches(&prefix)
+                        .trim_start_matches(prefix)
                         .trim_end_matches(&suffix);
                     ui.selectable_value(
                         &mut self.selected_firmware,
@@ -168,10 +184,20 @@ impl SystemFirmwarePage {
         Ok(())
     }
 
-    fn run_download_firmware(&mut self, app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_download_firmware(
+        &mut self,
+        app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.firmware_path.is_none() && self.background_thread.is_none() {
-            let release = self.software_version.clone().ok_or(anyhow!("Expected software_version to not be None."))?;
-            let firmware_asset = self.selected_firmware.clone().ok_or(anyhow!("Expected selected_firmware to not be None."))?;
+            let release = self
+                .software_version
+                .clone()
+                .ok_or(anyhow!("Expected software_version to not be None."))?;
+            let firmware_asset = self
+                .selected_firmware
+                .clone()
+                .ok_or(anyhow!("Expected selected_firmware to not be None."))?;
             let cache_path = app_state.tmp_dir.path().join("github_downloads");
             let (tx, rx) = std::sync::mpsc::channel();
             self.download_finished_receiver = Some(rx);
@@ -182,14 +208,18 @@ impl SystemFirmwarePage {
                     "firmware",
                     &release,
                     &cache_path,
-                ).expect("Falied to fetch GitHub releases.");
-                tx.send(download_path).expect("Failed to send release details to main thread.");
+                )
+                .expect("Falied to fetch GitHub releases.");
+                tx.send(download_path)
+                    .expect("Failed to send release details to main thread.");
             }));
         }
 
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            let receiver = self.download_finished_receiver.take().ok_or(anyhow!("Expected download_finished_receiver to not be None."))?;
+            let receiver = self.download_finished_receiver.take().ok_or(anyhow!(
+                "Expected download_finished_receiver to not be None."
+            ))?;
             self.firmware_path = Some(receiver.recv_timeout(Duration::from_secs(1))?);
             self.current_step = Step::ChooseDrive;
         }
@@ -203,19 +233,27 @@ impl SystemFirmwarePage {
         Ok(())
     }
 
-    fn run_choose_drive(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_choose_drive(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.available_drives.is_none() && self.background_thread.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.drive_list_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
                 let drives = list_drives().expect("Failed to get list of available drives.");
-                tx.send(drives).expect("Failed to send drive list to main thread.");
+                tx.send(drives)
+                    .expect("Failed to send drive list to main thread.");
             }));
         }
 
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            let receiver = self.drive_list_receiver.take().ok_or(anyhow!("Expected drive_list_receiver to not be None."))?;
+            let receiver = self
+                .drive_list_receiver
+                .take()
+                .ok_or(anyhow!("Expected drive_list_receiver to not be None."))?;
             self.available_drives = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
 
@@ -260,23 +298,41 @@ impl SystemFirmwarePage {
         Ok(())
     }
 
-    fn run_install_firmware(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_install_firmware(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.install_finished_receiver.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.install_finished_receiver = Some(rx);
-            let firmware_path = self.firmware_path.clone().ok_or(anyhow!("Expected firmware_path to not be None."))?;
-            let drive = self.selected_drive.clone().ok_or(anyhow!("Expected selected_drive to not be None."))?;
-            let filename = firmware_path.file_name().ok_or(anyhow!("Could not find filename in firmware_path"))?.to_str().ok_or(anyhow!("Could not convert filename to string."))?;
+            let firmware_path = self
+                .firmware_path
+                .clone()
+                .ok_or(anyhow!("Expected firmware_path to not be None."))?;
+            let drive = self
+                .selected_drive
+                .clone()
+                .ok_or(anyhow!("Expected selected_drive to not be None."))?;
+            let filename = firmware_path
+                .file_name()
+                .ok_or(anyhow!("Could not find filename in firmware_path"))?
+                .to_str()
+                .ok_or(anyhow!("Could not convert filename to string."))?;
             let destination = drive.drive_path.join(filename);
             self.background_thread = Some(std::thread::spawn(move || {
-                std::fs::copy(firmware_path, destination).expect("Failed to copy firmware to device.");
-                tx.send(()).expect("Failed to signal install finish to main thread.");
+                std::fs::copy(firmware_path, destination)
+                    .expect("Failed to copy firmware to device.");
+                tx.send(())
+                    .expect("Failed to signal install finish to main thread.");
             }));
         }
 
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            self.install_finished_receiver.take().ok_or(anyhow!("Expected install_finished_receiver to not be None."))?;
+            self.install_finished_receiver.take().ok_or(anyhow!(
+                "Expected install_finished_receiver to not be None."
+            ))?;
             self.current_step = Step::PostInstall;
         }
 
@@ -289,7 +345,11 @@ impl SystemFirmwarePage {
         Ok(())
     }
 
-    fn run_post_install(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_post_install(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Installation Complete");
             ui.label("You can now disconnect the device from the computer.");

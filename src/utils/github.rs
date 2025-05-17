@@ -55,7 +55,6 @@ pub fn get_releases(repo_owner: &str, repo_name: &str) -> Result<Vec<GithubRelea
     releases
         .iter_mut()
         .find(|r| !r.prerelease && !r.draft)
-        .take()
         .ok_or(anyhow::Error::msg("No stable releases found"))?
         .latest = true;
     Ok(releases)
@@ -69,8 +68,8 @@ pub fn download_versioned_asset(
     cache_dir: &std::path::Path,
 ) -> Result<std::path::PathBuf> {
     let dest_path = cache_dir
-        .join(&repo_owner)
-        .join(&repo_name)
+        .join(repo_owner)
+        .join(repo_name)
         .join(&release.name)
         .join(&asset.name);
     crate::utils::file_download::download_file(&asset.browser_download_url, &dest_path)?;

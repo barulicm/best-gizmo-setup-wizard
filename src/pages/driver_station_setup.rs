@@ -6,7 +6,6 @@ use crate::utils::threads::join_thread;
 use anyhow::anyhow;
 use egui_alignments::{column, stretch};
 use std::sync::mpsc::Receiver;
-use std::sync::Arc;
 use std::time::Duration;
 
 enum Step {
@@ -59,19 +58,26 @@ impl DriverStationSetupPage {
         }
     }
 
-    fn run_choose_version(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_choose_version(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.available_releases.is_none() && self.background_thread.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.available_releases_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
-                let releases =
-                    crate::utils::github::get_releases("gizmo-platform", "gizmo").expect("Failed to fetch GitHub releases.");
-                tx.send(releases).expect("Failed to send release details to main thread.");
+                let releases = crate::utils::github::get_releases("gizmo-platform", "gizmo")
+                    .expect("Failed to fetch GitHub releases.");
+                tx.send(releases)
+                    .expect("Failed to send release details to main thread.");
             }));
         }
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            let receiver = self.available_releases_receiver.take().ok_or(anyhow!("Expected available_releases_receiver to not be None."))?;
+            let receiver = self.available_releases_receiver.take().ok_or(anyhow!(
+                "Expected available_releases_receiver to not be None."
+            ))?;
             self.available_releases = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
         if self.available_releases.is_some() && self.software_version.is_none() {
@@ -117,7 +123,11 @@ impl DriverStationSetupPage {
         Ok(())
     }
 
-    fn run_enter_team_numbers(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_enter_team_numbers(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Team Numbers");
             ui.label("Enter your team numbers, one per line.");
@@ -150,9 +160,16 @@ impl DriverStationSetupPage {
         Ok(())
     }
 
-    fn run_download_archive(&mut self, app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_download_archive(
+        &mut self,
+        app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.archive_path.is_none() && self.background_thread.is_none() {
-            let thread_release = self.software_version.clone().ok_or(anyhow!("Expected software_version to not be None."))?;
+            let thread_release = self
+                .software_version
+                .clone()
+                .ok_or(anyhow!("Expected software_version to not be None."))?;
             let cache_path = app_state.tmp_dir.path().join("github_downloads");
             let (tx, rx) = std::sync::mpsc::channel();
             self.download_finished_receiver = Some(rx);
@@ -163,20 +180,23 @@ impl DriverStationSetupPage {
                     .find(|a| a.name == "ds-ramdisk.zip")
                     .expect("Could not find ds-ramdisk.zip in release assets.");
                 let archive_path = crate::utils::github::download_versioned_asset(
-                    &asset,
+                    asset,
                     "gizmo-platform",
                     "gizmo",
                     &thread_release,
                     &cache_path,
                 )
                 .expect("Failed to download ramdisk archive.");
-                tx.send(archive_path).expect("Failed to send download path to main thread.");
+                tx.send(archive_path)
+                    .expect("Failed to send download path to main thread.");
             }));
         }
 
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            let receiver = self.download_finished_receiver.take().ok_or(anyhow!("Expected download_finished_receiver to not be None."))?;
+            let receiver = self.download_finished_receiver.take().ok_or(anyhow!(
+                "Expected download_finished_receiver to not be None."
+            ))?;
             self.archive_path = Some(receiver.recv_timeout(Duration::from_secs(1))?);
             self.current_step = Step::ChooseDrive;
         }
@@ -190,19 +210,27 @@ impl DriverStationSetupPage {
         Ok(())
     }
 
-    fn run_choose_drive(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_choose_drive(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.available_drives.is_none() && self.background_thread.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.drive_list_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
                 let drives = list_drives().expect("Falied to get list of available drives.");
-                tx.send(drives).expect("Failed to send drive list to main thread.");
+                tx.send(drives)
+                    .expect("Failed to send drive list to main thread.");
             }));
         }
 
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            let receiver = self.drive_list_receiver.take().ok_or(anyhow!("Expected drive_list_receiver to not be None."))?;
+            let receiver = self
+                .drive_list_receiver
+                .take()
+                .ok_or(anyhow!("Expected drive_list_receiver to not be None."))?;
             self.available_drives = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
 
@@ -252,25 +280,41 @@ impl DriverStationSetupPage {
         Ok(())
     }
 
-    fn run_install_software(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_install_software(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         if self.install_finished_receiver.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
             self.install_finished_receiver = Some(rx);
-            let archive_path = self.archive_path.as_ref().ok_or(anyhow!("Expected archive_path to not be None."))?;
-            let drive = self.selected_drive.clone().ok_or(anyhow!("Expected selected_drive to not be None."))?;
-            let ramdisk_archive = std::fs::File::open(&archive_path)?;
+            let archive_path = self
+                .archive_path
+                .as_ref()
+                .ok_or(anyhow!("Expected archive_path to not be None."))?;
+            let drive = self
+                .selected_drive
+                .clone()
+                .ok_or(anyhow!("Expected selected_drive to not be None."))?;
+            let ramdisk_archive = std::fs::File::open(archive_path)?;
             let team_number = self.team_numbers[self.team_number_index].clone();
             self.background_thread = Some(std::thread::spawn(move || {
-                crate::utils::drive_management::format_drive(&drive, &team_number).expect("Failed to format drive.");
-                zip_extract::extract(ramdisk_archive, &drive.drive_path, true).expect("Failed to extract ramdisk archive.");
-                crate::utils::drive_management::write_filesystem_cache(&drive).expect("Failed to flush filesystem cache.");
-                tx.send(()).expect("Failed to signal intall finish to main thread.");
+                crate::utils::drive_management::format_drive(&drive, &team_number)
+                    .expect("Failed to format drive.");
+                zip_extract::extract(ramdisk_archive, &drive.drive_path, true)
+                    .expect("Failed to extract ramdisk archive.");
+                crate::utils::drive_management::write_filesystem_cache(&drive)
+                    .expect("Failed to flush filesystem cache.");
+                tx.send(())
+                    .expect("Failed to signal intall finish to main thread.");
             }));
         }
 
-        if let Some(thread) = self.background_thread.take_if(|t| { t.is_finished() }) {
+        if let Some(thread) = self.background_thread.take_if(|t| t.is_finished()) {
             join_thread(thread)?;
-            self.install_finished_receiver.take().ok_or(anyhow!("Expected install_finished_receiver to not be None."))?;
+            self.install_finished_receiver.take().ok_or(anyhow!(
+                "Expected install_finished_receiver to not be None."
+            ))?;
             self.current_step = Step::RemoveCard;
         }
 
@@ -283,7 +327,11 @@ impl DriverStationSetupPage {
         Ok(())
     }
 
-    fn run_remove_card(&mut self, _app_state: &mut GlobalAppState, ui: &mut egui::Ui) -> anyhow::Result<()> {
+    fn run_remove_card(
+        &mut self,
+        _app_state: &mut GlobalAppState,
+        ui: &mut egui::Ui,
+    ) -> anyhow::Result<()> {
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Installation Complete");
             let team_number = self.team_numbers[self.team_number_index].clone();

@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 pub fn run_command(command: &str) -> Result<std::process::Output> {
     let output = std::process::Command::new("powershell")

@@ -32,7 +32,9 @@ impl MyApp {
                 egui_alignments::stretch(ui);
             });
             ui.label("This tool will help you install or update your Gizmo software.");
-            ui.label("Select which software you would like to install, then follow the instructions.");
+            ui.label(
+                "Select which software you would like to install, then follow the instructions.",
+            );
 
             egui_alignments::stretch(ui);
 
@@ -51,8 +53,7 @@ impl MyApp {
                 });
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
-                    let button =
-                        egui::Button::new("Coming Soon");
+                    let button = egui::Button::new("Coming Soon");
                     if ui.add_sized([150.0, 150.0], button).clicked() {
                         self.current_page = Some(Box::new(
                             crate::pages::system_firmware::SystemFirmwarePage::new(),
@@ -62,8 +63,7 @@ impl MyApp {
                 });
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
-                    let button =
-                        egui::Button::new("Coming soon");
+                    let button = egui::Button::new("Coming soon");
                     if ui.add_sized([150.0, 150.0], button).clicked() {
                         self.current_page = Some(Box::new(
                             crate::pages::student_starter_code::StudentStarterCodePage::new(),
@@ -147,10 +147,8 @@ impl App for MyApp {
             egui::CentralPanel::default().show(ctx, |ui| {
                 if self.page_error.is_some() {
                     self.show_error_modal(ctx);
-                } else {
-                    if let Some(page) = &mut self.current_page {
-                        self.page_error = page.run(&mut self.state, ui).err();
-                    }
+                } else if let Some(page) = &mut self.current_page {
+                    self.page_error = page.run(&mut self.state, ui).err();
                 }
             });
         } else {

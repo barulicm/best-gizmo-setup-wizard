@@ -47,7 +47,7 @@ impl std::fmt::Display for DriveInfo {
 #[cfg(target_os = "windows")]
 pub fn list_drives() -> Result<Vec<DriveInfo>> {
     let powershell_command = "Get-Volume | Where-Object {$_.DriveType -eq 'Removable'} | Select-Object DriveLetter, FileSystemLabel | ConvertTo-Json";
-    let output = crate::utils::powershell::run_command(&powershell_command)
+    let output = crate::utils::powershell::run_command(powershell_command)
         .with_context(|| "Running Get-Volume failed")?;
     let mut drive_info_str = String::from_utf8(output.stdout)?;
     if !drive_info_str.starts_with("[") {
