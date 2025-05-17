@@ -53,7 +53,7 @@ impl MyApp {
                 });
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
-                    let button = egui::Button::new("Coming Soon");
+                    let button = egui::ImageButton::new(egui::include_image!("assets/gizmo_system_processor.png"));
                     if ui.add_sized([150.0, 150.0], button).clicked() {
                         self.current_page = Some(Box::new(
                             crate::pages::system_firmware::SystemFirmwarePage::new(),
@@ -63,13 +63,14 @@ impl MyApp {
                 });
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
-                    let button = egui::Button::new("Coming soon");
+                    ui.disable();
+                    let button = egui::ImageButton::new(egui::include_image!("assets/gizmo_student_processor.png"));
                     if ui.add_sized([150.0, 150.0], button).clicked() {
                         self.current_page = Some(Box::new(
                             crate::pages::student_starter_code::StudentStarterCodePage::new(),
                         ));
                     }
-                    ui.label("Starter Program");
+                    ui.label("Coming Soon");
                 });
 
                 egui_alignments::stretch(ui);
