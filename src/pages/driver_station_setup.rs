@@ -292,7 +292,7 @@ impl DriverStationSetupPage {
                 .archive_path
                 .as_ref()
                 .ok_or(anyhow!("Expected archive_path to not be None."))?;
-            let drive = self
+            let mut drive = self
                 .selected_drive
                 .clone()
                 .ok_or(anyhow!("Expected selected_drive to not be None."))?;
@@ -301,6 +301,16 @@ impl DriverStationSetupPage {
             self.background_thread = Some(std::thread::spawn(move || {
                 crate::utils::drive_management::format_drive(&drive, &team_number)
                     .expect("Failed to format drive.");
+                #[cfg(target_os = "linux")]
+                {
+                    // On linux, the drive path includes the volume label, so we need to update the
+                    // path after we change the name during formatting.
+                    drive.drive_path = drive
+                        .drive_path
+                        .parent()
+                        .expect("Failed to get parent path of drive path")
+                        .join(format!("GIZMO{team_number}"));
+                };
                 zip_extract::extract(ramdisk_archive, &drive.drive_path, true)
                     .expect("Failed to extract ramdisk archive.");
                 crate::utils::drive_management::write_filesystem_cache(&drive)

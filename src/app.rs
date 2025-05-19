@@ -53,7 +53,9 @@ impl MyApp {
                 });
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
-                    let button = egui::ImageButton::new(egui::include_image!("assets/gizmo_system_processor.png"));
+                    let button = egui::ImageButton::new(egui::include_image!(
+                        "assets/gizmo_system_processor.png"
+                    ));
                     if ui.add_sized([150.0, 150.0], button).clicked() {
                         self.current_page = Some(Box::new(
                             crate::pages::system_firmware::SystemFirmwarePage::new(),
@@ -64,7 +66,9 @@ impl MyApp {
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
                     ui.disable();
-                    let button = egui::ImageButton::new(egui::include_image!("assets/gizmo_student_processor.png"));
+                    let button = egui::ImageButton::new(egui::include_image!(
+                        "assets/gizmo_student_processor.png"
+                    ));
                     if ui.add_sized([150.0, 150.0], button).clicked() {
                         self.current_page = Some(Box::new(
                             crate::pages::student_starter_code::StudentStarterCodePage::new(),
@@ -143,6 +147,7 @@ impl MyApp {
 
 impl App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
+        ctx.set_visuals(egui::Visuals::light());
         if self.current_page.is_some() {
             self.add_top_panel(ctx);
             egui::CentralPanel::default().show(ctx, |ui| {
