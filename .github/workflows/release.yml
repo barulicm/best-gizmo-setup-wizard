@@ -1,5 +1,8 @@
 name: Release
 
+permissions:
+  contents: write
+
 on:
   release:
     types: ["published"]
@@ -17,10 +20,10 @@ jobs:
         include:
           - platform: linux
             os: ubuntu-latest
-            target_binary: ${{github.workspace}}\target\release\best_gizmo_setup_wizard
+            target_binary: ${{github.workspace}}/target/release/best_gizmo_setup_wizard
           - platform: windows
             os: windows-latest
-            target_binary: ${{github.workspace}}\target/release/best_gizmo_setup_wizard.exe
+            target_binary: ${{github.workspace}}/target/release/best_gizmo_setup_wizard.exe
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -29,7 +32,7 @@ jobs:
       run: cargo build --release
     - name: Upload release asset
       uses: softprops/action-gh-release@v2
-      if: github.ref_type == 'tag'
+      if: ${{github.event_name == 'release'}}
       with:
         files:
           ${{ matrix.target_binary }}
