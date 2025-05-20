@@ -20,10 +20,10 @@ jobs:
         include:
           - platform: linux
             os: ubuntu-latest
-            target_binary: ${{github.workspace}}/target/release/best_gizmo_setup_wizard
+            binary_name: best_gizmo_setup_wizard
           - platform: windows
             os: windows-latest
-            target_binary: ${{github.workspace}}/target/release/best_gizmo_setup_wizard.exe
+            binary_name: best_gizmo_setup_wizard.exe
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -35,4 +35,4 @@ jobs:
       if: ${{github.event_name == 'release'}}
       with:
         files:
-          ${{ matrix.target_binary }}
+          ${{ github.workspace }}/target/release/${{ matrix.binary_name }}
