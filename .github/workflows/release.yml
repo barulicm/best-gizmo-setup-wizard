@@ -20,19 +20,27 @@ jobs:
         include:
           - platform: linux
             os: ubuntu-latest
-            binary_name: best_gizmo_setup_wizard
+            build_binary_name: best_gizmo_setup_wizard
+            release_binary_name: best_gizmo_setup_wizard_linux
           - platform: windows
             os: windows-latest
-            binary_name: best_gizmo_setup_wizard.exe
+            build_binary_name: best_gizmo_setup_wizard.exe
+            release_binary_name: best_gizmo_setup_wizard_windows.exe
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Build
       run: cargo build --release
+    - name: Rename Binary (Linux)
+      if: ${{ matrix.platform == 'linux' }}
+      run: mv ${{ github.workspace }}/target/release/${{ matrix.build_binary_name }} ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
+    - name: Rename Binary (Windows)
+      if: ${{ matrix.platform == 'windows' }}
+      run: Move-Item -Path ${{ github.workspace }}/target/release/${{ matrix.build_binary_name }} -Destination ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
     - name: Upload release asset
       uses: softprops/action-gh-release@v2
       if: ${{github.event_name == 'release'}}
       with:
         files:
-          ${{ github.workspace }}/target/release/${{ matrix.binary_name }}
+          ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
