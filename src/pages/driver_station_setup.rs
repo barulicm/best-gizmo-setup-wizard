@@ -292,6 +292,7 @@ impl DriverStationSetupPage {
                 .archive_path
                 .as_ref()
                 .ok_or(anyhow!("Expected archive_path to not be None."))?;
+            #[allow(unused_mut)] // drive needs to be mutable on Linux, but not on Windows
             let mut drive = self
                 .selected_drive
                 .clone()
