@@ -16,16 +16,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux, windows]
+        platform: [linux, windows_x86, windows_arm]
         include:
           - platform: linux
             os: ubuntu-latest
             build_binary_name: best_gizmo_setup_wizard
             release_binary_name: best_gizmo_setup_wizard_linux
-          - platform: windows
+          - platform: windows_x86
             os: windows-latest
             build_binary_name: best_gizmo_setup_wizard.exe
-            release_binary_name: best_gizmo_setup_wizard_windows.exe
+            release_binary_name: best_gizmo_setup_wizard_windows_x86.exe
+          - platform: windows_arm
+            os: windows-11-arm
+            build_binary_name: best_gizmo_setup_wizard.exe
+            release_binary_name: best_gizmo_setup_wizard_windows_arm.exe
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -36,7 +40,7 @@ jobs:
       if: ${{ matrix.platform == 'linux' }}
       run: mv ${{ github.workspace }}/target/release/${{ matrix.build_binary_name }} ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
     - name: Rename Binary (Windows)
-      if: ${{ matrix.platform == 'windows' }}
+      if: ${{ matrix.platform == 'windows_x86' || matrix.platform == 'windows_arm' }}
       run: Move-Item -Path ${{ github.workspace }}/target/release/${{ matrix.build_binary_name }} -Destination ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
     - name: Upload release asset
       uses: softprops/action-gh-release@v2
