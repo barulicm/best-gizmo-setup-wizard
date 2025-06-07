@@ -54,7 +54,7 @@ jobs:
       run: Compress-Archive -Path ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }} -DestinationPath ${{ github.workspace }}/target/release/${{ matrix.archive_name }}
     - name: Archive binary (Linux)
       if: ${{ matrix.platform == 'linux' }}
-      run: tar -czf ${{ github.workspace }}/target/release/${{ matrix.archive_name }} -C ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
+      run: tar -czf ${{ github.workspace }}/target/release/${{ matrix.archive_name }} -C ${{ github.workspace }}/target/release/ ${{ matrix.release_binary_name }}
     - name: Upload release asset
       uses: softprops/action-gh-release@v2
       if: ${{github.event_name == 'release'}}
