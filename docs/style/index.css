@@ -1,0 +1,36 @@
+#content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+#content > div {
+  width: 66%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.download-button {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 20px 0;
+  background-color: #001E62;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+.download-button > p {
+  margin: 0;
+}
+
+.download-button > h2 {
+  margin: 0;
+}
+
+table {
+  margin-left: auto;
+  margin-right: auto;
+}
