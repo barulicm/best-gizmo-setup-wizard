@@ -84,10 +84,8 @@ async function getDownloadPrefix() {
 async function setDownloadLinks() {
   const prefix = await getDownloadPrefix();
   let links = document.getElementsByClassName('download-link');
-  console.log(`Found ${links.length} download links.`);
   for(let link of links) {
     const href = link.getAttribute('href');
-    console.log(`Updating link: ${href}`);
     if (href) {
       link.setAttribute('href', `${prefix}${href}`);
     }
