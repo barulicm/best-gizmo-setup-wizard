@@ -65,7 +65,6 @@ impl MyApp {
                 });
 
                 egui_alignments::column(ui, egui::Align::Center, |ui| {
-                    ui.disable();
                     let button = egui::ImageButton::new(egui::include_image!(
                         "assets/gizmo_student_processor.png"
                     ));
@@ -74,7 +73,7 @@ impl MyApp {
                             crate::pages::student_starter_code::StudentStarterCodePage::new(),
                         ));
                     }
-                    ui.label("Coming Soon");
+                    ui.label("Default Student Program");
                 });
 
                 egui_alignments::stretch(ui);
