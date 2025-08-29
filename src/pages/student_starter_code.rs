@@ -127,7 +127,7 @@ impl StudentStarterCodePage {
                 .software_version
                 .clone()
                 .ok_or(anyhow!("Expected software_version to not be None"))?;
-            let asset_name = format!("best-default-program-{}.uf2", release.tag_name);
+            let asset_name = "best_default_program.uf2";
             let firmware_asset = release
                 .assets
                 .iter()
