@@ -9,7 +9,6 @@
 #content > div {
   width: 66%;
   max-width: 600px;
-  text-align: center;
 }
 
 .download-button {
@@ -33,4 +32,16 @@
 table {
   margin-left: auto;
   margin-right: auto;
+}
+
+.center-text {
+  text-align: center;
+}
+
+.left-text {
+  text-align: left;
+}
+
+#windows-security-note {
+  margin-bottom: 20px;
 }

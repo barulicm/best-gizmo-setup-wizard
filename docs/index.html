@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -8,10 +9,10 @@
 
 <body onload="onLoad()">
   <div id="content">
-    <div>
+    <div class="center-text">
       <h1>Gizmo Setup Wizard for BEST Robotics</h1>
     </div>
-    <div>
+    <div class="center-text">
       <p>This tool will help you install the software on your Gizmo system to prepare it for the BEST Robotics
         competition.</p>
       <p>To use the tool, extract the downloaded archive and run the tool. Then, follow the instructions in the tool.
@@ -20,28 +21,46 @@
           href="https://github.com/barulicm/best-gizmo-setup-wizard/discussions/new?category=q-a">post a question</a> to
         GitHub or reach out to <a href="mailto:matt.barulic@bestinc.org">Matt Barulic</a>.</p>
     </div>
-    <div id="WindowsX64" style="display:none;">
+    <div id="WindowsX64" style="display:none;" class="center-text">
       <a class="download-button download-link" href="best_gizmo_setup_wizard_windows_x86.zip">
         <h2>Download</h2>
         <p>for Windows x64</p>
       </a>
       <p>If you need to download for another platform type, see the links below.</p>
     </div>
-    <div id="WindowsArm64" style="display:none;">
+    <div id="WindowsArm64" style="display:none;" class="center-text">
       <a class="download-button download-link" href="best_gizmo_setup_wizard_windows_arm.zip">
         <h2>Download</h2>
         <p>for Windows ARM</p>
       </a>
       <p>If you need to download for another platform type, see the links below.</p>
     </div>
-    <div id="LinuxX64" style="display:none;">
+    <div id="LinuxX64" style="display:none;" class="center-text">
       <a class="download-button download-link" href="best_gizmo_setup_wizard_linux.tar.gz">
         <h2>Download</h2>
         <p>for Linux x64</p>
       </a>
       <p>If you need to download for another platform type, see the links below.</p>
     </div>
-    <div id="UnsupportedPlatform" style="display:none;">
+    <div id="windows-security-note" class="left-text">
+      <details>
+        <summary><b style="background-color: lightpink;">Note for Windows users</b> (click to expand)</summary>
+        <p></p>Unfortunately, Windows Defender may flag the download as a potential threat. This is
+          a false positive caused by some of the system calls this installer makes to set up Driver Station SD cards. If
+          your download fails because of a "Virus Detected" message, you can follow these steps to work around this error.</p>
+        <ol>
+          <li>Open the <a href="ms-settings:windowsdefender">Windows Security Settings</a>.</li>
+          <li>Click on "Virus & threat protection".</li>
+          <li>Click the "Protection history" link under "Current Threats".</li>
+          <li>Find the entry for the failed download. Click to expand it and double check the affected item is the setup wizard zip file.</li>
+          <li>In the actions menu, select "Allow".</li>
+          <li>Try downloading the file again.</li>
+        </ol>
+        <p>When you run the application, you may be presented with a warning dialog about the safety of the application.
+          You can bypass this dialog by clicking the "More info" link and then the "Run anyway" button.</p>
+      </details>
+    </div>
+    <div id="UnsupportedPlatform" style="display:none;" class="center-text">
       <p><b>Sorry, it looks like you're on an unsupported operating system. If you think that's wrong, you can try one of
         the links in the table below.</b></p>
     </div>
@@ -68,7 +87,7 @@
         </tr>
       </table>
     </div>
-    <div>
+    <div class="center-text">
       <p>You can find previous versions on the <a
           href="https://github.com/barulicm/best-gizmo-setup-wizard/releases">GitHub Releases page</a>.</p>
     </div>
