@@ -47,7 +47,7 @@ jobs:
         refreshenv
 
     - name: Build Windows Installer
-      run: .\installers\windows\build_installer.ps1
+      run: .\build_installer.ps1
       working-directory: ./installers/windows
 
     - name: Upload release asset
