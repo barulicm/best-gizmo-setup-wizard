@@ -12,48 +12,47 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-and-upload:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [linux, windows_x86, windows_arm]
-        include:
-          - platform: linux
-            os: ubuntu-latest
-            build_binary_name: best_gizmo_setup_wizard
-            release_binary_name: best_gizmo_setup_wizard_linux
-            archive_name: best_gizmo_setup_wizard_linux.tar.gz
-          - platform: windows_x86
-            os: windows-latest
-            build_binary_name: best_gizmo_setup_wizard.exe
-            release_binary_name: best_gizmo_setup_wizard_windows_x86.exe
-            archive_name: best_gizmo_setup_wizard_windows_x86.zip
-          - platform: windows_arm
-            os: windows-11-arm
-            build_binary_name: best_gizmo_setup_wizard.exe
-            release_binary_name: best_gizmo_setup_wizard_windows_arm.exe
-            archive_name: best_gizmo_setup_wizard_windows_arm.zip
-    runs-on: ${{ matrix.os }}
+  build-and-upload-linux:
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
     - name: Build
       run: cargo build --release
-    - name: Rename binary (Linux)
-      if: ${{ matrix.platform == 'linux' }}
-      run: mv ${{ github.workspace }}/target/release/${{ matrix.build_binary_name }} ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
-    - name: Rename binary (Windows)
-      if: ${{ matrix.platform == 'windows_x86' || matrix.platform == 'windows_arm' }}
-      run: Move-Item -Path ${{ github.workspace }}/target/release/${{ matrix.build_binary_name }} -Destination ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }}
-    - name: Archive binary (Windows)
-      if: ${{ matrix.platform == 'windows_x86' || matrix.platform == 'windows_arm' }}
-      run: Compress-Archive -Path ${{ github.workspace }}/target/release/${{ matrix.release_binary_name }} -DestinationPath ${{ github.workspace }}/target/release/${{ matrix.archive_name }}
+
     - name: Archive binary (Linux)
-      if: ${{ matrix.platform == 'linux' }}
-      run: tar -czf ${{ github.workspace }}/target/release/${{ matrix.archive_name }} -C ${{ github.workspace }}/target/release/ ${{ matrix.release_binary_name }}
+      run: tar -czf ${{ github.workspace }}/target/release/best_gizmo_setup_wizard_linux.tar.gz -C ${{ github.workspace }}/target/release/ best_gizmo_setup_wizard
+    
     - name: Upload release asset
       uses: softprops/action-gh-release@v2
       if: ${{github.event_name == 'release'}}
       with:
         files:
-          ${{ github.workspace }}/target/release/${{ matrix.archive_name }}
+          ${{ github.workspace }}/target/release/best_gizmo_setup_wizard_linux.tar.gz
+
+
+  build-and-upload-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: cargo build --release
+
+    - name: Install Inno Setup
+      run: |
+        choco install innosetup -y
+        refreshenv
+
+    - name: Build Windows Installer
+      run: .\installers\windows\build_installer.ps1
+      working-directory: ./installers/windows
+
+    - name: Upload release asset
+      uses: softprops/action-gh-release@v2
+      if: ${{github.event_name == 'release'}}
+      with:
+        files:
+          ${{ github.workspace }}/target/release/best_gizmo_setup_wizard_windows_installer.exe
