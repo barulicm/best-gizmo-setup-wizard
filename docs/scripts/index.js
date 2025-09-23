@@ -31,9 +31,6 @@ function showDownloadLink() {
     case 'Windows x64':
       document.getElementById('WindowsX64').style.display = 'block';
       break;
-    case 'Windows arm64':
-      document.getElementById('WindowsArm64').style.display = 'block';
-      break;
     case 'Linux x64':
       document.getElementById('LinuxX64').style.display = 'block';
       break;
