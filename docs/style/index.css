@@ -42,6 +42,18 @@ table {
   text-align: left;
 }
 
-#windows-security-note {
-  margin-bottom: 20px;
+/* #windows-warning {
+  
+} */
+
+#windows-warning > img {
+  width: 33%;
+  float: right;
+  text-align: right;
+}
+
+#windows-warning > p {
+  width: 66%;
+  float: left;
+  text-align: left;
 }

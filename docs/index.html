@@ -22,18 +22,15 @@
         GitHub or reach out to <a href="mailto:matt.barulic@bestinc.org">Matt Barulic</a>.</p>
     </div>
     <div id="WindowsX64" style="display:none;" class="center-text">
-      <a class="download-button download-link" href="best_gizmo_setup_wizard_windows_x86.zip">
+      <a class="download-button download-link" href="best_gizmo_setup_wizard_windows_installer.exe">
         <h2>Download</h2>
-        <p>for Windows x64</p>
+        <p>for Windows</p>
       </a>
       <p>If you need to download for another platform type, see the links below.</p>
-    </div>
-    <div id="WindowsArm64" style="display:none;" class="center-text">
-      <a class="download-button download-link" href="best_gizmo_setup_wizard_windows_arm.zip">
-        <h2>Download</h2>
-        <p>for Windows ARM</p>
-      </a>
-      <p>If you need to download for another platform type, see the links below.</p>
+      <div id="windows-warning">
+        <p>If your browser warns you that the download may be unsafe, this is normal. Use the three dot menu to select the "keep" option.</p>
+        <img src="images/edge_warning.png" alt="Screenshot showing Edge browser download safety warning."/>
+      </div>
     </div>
     <div id="LinuxX64" style="display:none;" class="center-text">
       <a class="download-button download-link" href="best_gizmo_setup_wizard_linux.tar.gz">
@@ -41,24 +38,6 @@
         <p>for Linux x64</p>
       </a>
       <p>If you need to download for another platform type, see the links below.</p>
-    </div>
-    <div id="windows-security-note" class="left-text">
-      <details>
-        <summary><b style="background-color: lightpink;">Note for Windows users</b> (click to expand)</summary>
-        <p></p>Unfortunately, Windows Defender may flag the download as a potential threat. This is
-          a false positive caused by some of the system calls this installer makes to set up Driver Station SD cards. If
-          your download fails because of a "Virus Detected" message, you can follow these steps to work around this error.</p>
-        <ol>
-          <li>Open the <a href="ms-settings:windowsdefender">Windows Security Settings</a>.</li>
-          <li>Click on "Virus & threat protection".</li>
-          <li>Click the "Protection history" link under "Current Threats".</li>
-          <li>Find the entry for the failed download. Click to expand it and double check the affected item is the setup wizard zip file.</li>
-          <li>In the actions menu, select "Allow".</li>
-          <li>Try downloading the file again.</li>
-        </ol>
-        <p>When you run the application, you may be presented with a warning dialog about the safety of the application.
-          You can bypass this dialog by clicking the "More info" link and then the "Run anyway" button.</p>
-      </details>
     </div>
     <div id="UnsupportedPlatform" style="display:none;" class="center-text">
       <p><b>Sorry, it looks like you're on an unsupported operating system. If you think that's wrong, you can try one of
@@ -71,14 +50,9 @@
           <th>Download Link</th>
         </tr>
         <tr>
-          <td>Windows x64</td>
+          <td>Windows</td>
           <td><a class="download-link"
-              href="best_gizmo_setup_wizard_windows_x86.zip">best_gizmo_setup_wizard_windows_x86.zip</a></td>
-        </tr>
-        <tr>
-          <td>Windows arm64</td>
-          <td><a class="download-link"
-              href="best_gizmo_setup_wizard_windows_arm.zip">best_gizmo_setup_wizard_windows_arm.zip</a></td>
+              href="best_gizmo_setup_wizard_windows_installer.exe">best_gizmo_setup_wizard_windows_installer.exe</a></td>
         </tr>
         <tr>
           <td>Linux x64</td>
