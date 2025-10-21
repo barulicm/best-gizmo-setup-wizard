@@ -5,10 +5,11 @@ edition = "2024"
 
 [dependencies]
 anyhow = { version = "1.0.98", features = ["backtrace"] }
-eframe = "0.31.1"
-egui = "0.31.1"
-egui_alignments = "0.3.4"
-egui_extras = { version = "0.31.1", features = ["all_loaders"] }
+eframe = "0.33.0"
+egui = "0.33.0"
+egui-file-dialog = "0.12.0"
+egui_alignments = { git = "https://github.com/a-littlebit/egui_alignments.git", rev = "6b1bb388a9fc3529e6fd02466b0cdcef3c901992" }
+egui_extras = { version = "0.33.0", features = ["all_loaders"] }
 image = { version = "0.25.6", features = ["jpeg"] }
 regex = "1.11.1"
 reqwest = { version = "0.12.15", features = ["blocking", "json"] }
