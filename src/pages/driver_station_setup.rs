@@ -5,6 +5,7 @@ use crate::utils::github::GithubRelease;
 use crate::utils::threads::join_thread;
 use anyhow::anyhow;
 use egui_alignments::{column, stretch};
+use egui_file_dialog::FileDialog;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
@@ -22,6 +23,7 @@ pub struct DriverStationSetupPage {
     available_releases: Option<Vec<GithubRelease>>,
     software_version: Option<GithubRelease>,
     archive_path: Option<std::path::PathBuf>,
+    use_local_archive: bool,
     team_numbers_text: String,
     team_numbers: Vec<String>,
     team_number_index: usize,
@@ -34,6 +36,7 @@ pub struct DriverStationSetupPage {
     install_finished_receiver: Option<Receiver<()>>,
 
     background_thread: Option<std::thread::JoinHandle<()>>,
+    file_dialog: FileDialog,
 }
 
 impl DriverStationSetupPage {
@@ -43,6 +46,7 @@ impl DriverStationSetupPage {
             available_releases: None,
             software_version: None,
             archive_path: None,
+            use_local_archive: false,
             team_numbers_text: String::new(),
             team_numbers: vec![],
             team_number_index: 0,
@@ -55,6 +59,9 @@ impl DriverStationSetupPage {
             install_finished_receiver: None,
 
             background_thread: None,
+            file_dialog: FileDialog::new()
+                .add_file_filter_extensions("ZIP Archive", vec!["zip"])
+                .default_file_filter("ZIP Archive"),
         }
     }
 
@@ -68,7 +75,7 @@ impl DriverStationSetupPage {
             self.available_releases_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
                 let releases = crate::utils::github::get_releases("gizmo-platform", "gizmo")
-                    .expect("Failed to fetch GitHub releases.");
+                    .unwrap_or(Vec::new());
                 tx.send(releases)
                     .expect("Failed to send release details to main thread.");
             }));
@@ -80,18 +87,26 @@ impl DriverStationSetupPage {
             ))?;
             self.available_releases = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
-        if self.available_releases.is_some() && self.software_version.is_none() {
-            self.software_version = Some(
-                self.available_releases
-                    .as_ref()
-                    .ok_or(anyhow!("Expected available_releases to not be None."))?
-                    .iter()
-                    .find(|r| r.latest)
-                    .ok_or(anyhow!("Latest release not found"))?
-                    .clone(),
-            );
+        if let Some(releases) = self.available_releases.as_ref() {
+            if !releases.is_empty() && self.software_version.is_none() {
+                self.software_version = Some(
+                    releases
+                        .iter()
+                        .find(|r| r.latest)
+                        .ok_or(anyhow!("Latest release not found"))?
+                        .clone(),
+                );
+            }
         }
         let next_button_enabled = self.software_version.is_some();
+
+        self.file_dialog.update(ui.ctx());
+
+        if let Some(selected_file) = self.file_dialog.take_picked() {
+            self.archive_path = Some(selected_file);
+            self.use_local_archive = true;
+            self.current_step = Step::EnterTeamNumbers;
+        }
 
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Software Version");
@@ -114,6 +129,9 @@ impl DriverStationSetupPage {
             } else {
                 ui.spinner();
                 ui.label("Fetching available releases...");
+            }
+            if ui.link("Use local file instead").clicked() {
+                self.file_dialog.pick_file();
             }
             stretch(ui);
             if add_next_button(ui, next_button_enabled).clicked() {
@@ -165,6 +183,10 @@ impl DriverStationSetupPage {
         app_state: &mut GlobalAppState,
         ui: &mut egui::Ui,
     ) -> anyhow::Result<()> {
+        if self.use_local_archive {
+            self.current_step = Step::ChooseDrive;
+            return Ok(());
+        }
         if self.archive_path.is_none() && self.background_thread.is_none() {
             let thread_release = self
                 .software_version

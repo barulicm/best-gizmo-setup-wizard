@@ -5,8 +5,10 @@ use crate::utils::github::{GithubRelease, GithubReleaseAsset, download_versioned
 use crate::utils::threads::join_thread;
 use anyhow::anyhow;
 use egui_alignments::{column, stretch};
+use egui_file_dialog::FileDialog;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
+use std::vec;
 
 enum Step {
     ChooseVersion,
@@ -33,6 +35,7 @@ pub struct SystemFirmwarePage {
     install_finished_receiver: Option<Receiver<()>>,
 
     background_thread: Option<std::thread::JoinHandle<()>>,
+    file_dialog: FileDialog,
 }
 
 impl SystemFirmwarePage {
@@ -53,6 +56,9 @@ impl SystemFirmwarePage {
             install_finished_receiver: None,
 
             background_thread: None,
+            file_dialog: FileDialog::new()
+                .add_file_filter_extensions("UF2 Firmware", vec!["uf2"])
+                .default_file_filter("UF2 Firmware"),
         }
     }
 
@@ -66,7 +72,7 @@ impl SystemFirmwarePage {
             self.available_releases_receiver = Some(rx);
             self.background_thread = Some(std::thread::spawn(move || {
                 let releases = crate::utils::github::get_releases("gizmo-platform", "firmware")
-                    .expect("Failed to fetch GitHub releases.");
+                    .unwrap_or(Vec::new());
                 tx.send(releases)
                     .expect("Failed to send release details to main thread.");
             }));
@@ -78,18 +84,25 @@ impl SystemFirmwarePage {
             ))?;
             self.available_releases = Some(receiver.recv_timeout(Duration::from_secs(1))?);
         }
-        if self.available_releases.is_some() && self.software_version.is_none() {
-            self.software_version = Some(
-                self.available_releases
-                    .as_ref()
-                    .ok_or(anyhow!("Expected available_releases to not be None."))?
-                    .iter()
-                    .find(|r| r.latest)
-                    .ok_or(anyhow!("Latest release not found"))?
-                    .clone(),
-            );
+        if let Some(releases) = self.available_releases.as_ref() {
+            if !releases.is_empty() && self.software_version.is_none() {
+                self.software_version = Some(
+                    releases
+                        .iter()
+                        .find(|r| r.latest)
+                        .ok_or(anyhow!("Latest release not found"))?
+                        .clone(),
+                );
+            }
         }
         let next_button_enabled = self.software_version.is_some();
+
+        self.file_dialog.update(ui.ctx());
+
+        if let Some(selected_file) = self.file_dialog.take_picked() {
+            self.firmware_path = Some(selected_file);
+            self.current_step = Step::ChooseDrive;
+        }
 
         column(ui, egui::Align::LEFT, |ui| {
             ui.heading("Firmware Version");
@@ -112,6 +125,9 @@ impl SystemFirmwarePage {
             } else {
                 ui.spinner();
                 ui.label("Fetching available releases...");
+            }
+            if ui.link("Use local file instead").clicked() {
+                self.file_dialog.pick_file();
             }
             stretch(ui);
             if add_next_button(ui, next_button_enabled).clicked() {
